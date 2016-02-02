@@ -52,7 +52,7 @@ namespace WOAI_P3D_Installer
             }
 
             // Check that the output folder exists and is empty.
-            if (File.Exists(extractedPackagesDirectory))
+            if (Directory.Exists(extractedPackagesDirectory))
             {
                 if (Directory.EnumerateFileSystemEntries(outputRootDirectory).Any())
                 {
