@@ -28,9 +28,9 @@ namespace WOAI_P3D_Installer
 
         private bool checkFolderStructure()
         {
-            string sourceRootDirectory = Path.Combine(this.txtPath.Text, "Source");
-            string extractedPackagesDirectory = Path.Combine(this.txtPath.Text, "Source\\Extracted Packages");
-            string outputRootDirectory = Path.Combine(this.txtPath.Text, "Output");
+            string sourceRootDirectory = this.getSourceRootDirectory();
+            string extractedPackagesDirectory = this.getExtractedPackagesDirectory();
+            string outputRootDirectory = this.getOutputRootDirectory();
 
             // Check that "<ROOT>\Source\Extracted Packages" exists
             if (File.Exists(extractedPackagesDirectory))
@@ -77,9 +77,36 @@ namespace WOAI_P3D_Installer
             return true;
         }
 
+        private string getExtractedPackagesDirectory() {
+            return Path.Combine(this.txtPath.Text, "Source\\Extracted Packages");
+        }
+
+        private string getSourceRootDirectory() {
+            return Path.Combine(this.txtPath.Text, "Source");
+        }
+
+        private string getOutputRootDirectory() {
+            return Path.Combine(this.txtPath.Text, "Output");
+        }
+
         private void copyGlobalTextures()
         {
-            
+            string extractedPackagesDir = this.getExtractedPackagesDirectory();
+            DirectoryInfo[] packageDirs = new DirectoryInfo(extractedPackagesDir).GetDirectories();
+
+            // Create destination folder for SimObjects.
+
+
+            foreach (DirectoryInfo package in packageDirs) {
+                Console.WriteLine("Processing package: " + package.Name);
+
+                DirectoryInfo[] modelDirs = new DirectoryInfo(Path.Combine(package.FullName, "aircraft")).GetDirectories();
+
+                foreach (DirectoryInfo model in modelDirs) {
+                    string destDir = Path.Combine(this.getOutputRootDirectory(), "SimObjects", "Airplanes", model.Name);
+                    Console.WriteLine("Copy model " + model + " to " + destDir);
+                }
+            }
         }
 
         private void moveAircraft()
@@ -113,6 +140,8 @@ namespace WOAI_P3D_Installer
                 this.resetUi(false);
                 return;
             }
+
+            this.copyGlobalTextures();
 
             this.updateProgress(5);
             this.updateProgress(50);
