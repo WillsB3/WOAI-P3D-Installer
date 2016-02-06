@@ -11,23 +11,20 @@ using System.IO;
 
 namespace WOAI_P3D_Installer
 {
-    public partial class Main : Form
+    public partial class Main : Form 
     {
-        public Main()
-        {
+        public Main() {
             InitializeComponent();
         }
 
-        private void btnChooseFolder_Click(object sender, EventArgs e)
-        {
+        private void btnChooseFolder_Click(object sender, EventArgs e) {
             if (fbdPath.ShowDialog() == DialogResult.OK)
             {
                 txtPath.Text = fbdPath.SelectedPath;
             }
         }
 
-        private bool checkFolderStructure()
-        {
+        private bool checkFolderStructure() {
             string sourceRootDirectory = this.getSourceRootDirectory();
             string extractedPackagesDirectory = this.getExtractedPackagesDirectory();
             string outputRootDirectory = this.getOutputRootDirectory();
@@ -114,8 +111,7 @@ namespace WOAI_P3D_Installer
             return (int)result;
         }
 
-        private void copyGlobalTextures()
-        {
+        private void copyGlobalTextures() {
             string extractedPackagesDir = this.getExtractedPackagesDirectory();
             DirectoryInfo[] packageDirs = new DirectoryInfo(extractedPackagesDir).GetDirectories();
             int numPackages = packageDirs.Length;
@@ -177,16 +173,6 @@ namespace WOAI_P3D_Installer
             }
         }
 
-        private void moveAircraft()
-        {
-
-        }
-
-        private void copyBgls()
-        {
-
-        }
-
         private void resetUi(bool retainProgress) {
             this.unlockUi();
 
@@ -195,15 +181,15 @@ namespace WOAI_P3D_Installer
             }
         }
 
-        private void btnGo_Click(object sender, EventArgs e)
-        {
+        private void btnGo_Click(object sender, EventArgs e) {
             bool folderCheckOk;
 
+            this.updateProgress(0);
             this.lockUi();
             this.updateProgress(1);
-            this.updateProgress(this.calculateTaskProgress("CHECK_DIRS", 100.0f));
 
             folderCheckOk =  this.checkFolderStructure();
+            this.updateProgress(this.calculateTaskProgress("CHECK_DIRS", 100.0f));
 
             if (!folderCheckOk) {
                 this.resetUi(false);
@@ -213,34 +199,36 @@ namespace WOAI_P3D_Installer
             this.updateProgress(this.calculateTaskProgress("DIRECTORY_CHECK", 100.0f));
 
             this.copyGlobalTextures();
+
+            this.done();
         }
 
-        private void lockUi()
-        {
+        private void lockUi() {
             this.txtPath.Enabled = false;
             this.btnChooseFolder.Enabled = false;
             this.btnGo.Enabled = false;
         }
 
-        private void unlockUi()
-        {
+        private void unlockUi() {
             this.txtPath.Enabled = true;
             this.btnChooseFolder.Enabled = true;
             this.btnGo.Enabled = true;
         }
 
-        private void updateProgress(int value)
-        {
+        private void updateProgress(int value) {
             this.pbProgress.Value = value;
         }
 
-        private void exitToolStripMenuItem_Click(object sender, EventArgs e)
-        {
+        private void exitToolStripMenuItem_Click(object sender, EventArgs e) {
             Application.Exit();
         }
 
-        private void aboutToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
+        private void done() {
+            MessageBox.Show("Done! ", "Processing Completed", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            this.resetUi(true);
+        }
+
+        private void aboutToolStripMenuItem1_Click(object sender, EventArgs e) {
             MessageBox.Show("WOAI Installer for P3D - v1.0\nCreated by " + 
                 "Wills Bithrey\nPlease file issues on GitHub at " + 
                 "https://github.com/WillsB3/WOAI-P3D-Installer", "About", 
