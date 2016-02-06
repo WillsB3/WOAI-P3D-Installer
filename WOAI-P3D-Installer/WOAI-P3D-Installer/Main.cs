@@ -89,23 +89,91 @@ namespace WOAI_P3D_Installer
             return Path.Combine(this.txtPath.Text, "Output");
         }
 
+        private string getSceneryOutputDirectory() {
+            return Path.Combine(this.getOutputRootDirectory(), "WOAI Traffic", "scenery");
+        }
+
+        private int calculateTaskProgress(string task, float progress) {
+            float result;
+
+            switch (task) {
+                case "COPY_AIRCRAFT":
+                    result = 0.8f * progress;
+                    break;
+                case "COPY_TEXTURES":
+                    result = 0.3f;
+                    break;
+                case "CHECK_DIRS":
+                    result = 0.1f * progress;
+                    break;
+                default:
+                    result = 0;
+                    break;
+            }
+
+            return (int)result;
+        }
+
         private void copyGlobalTextures()
         {
             string extractedPackagesDir = this.getExtractedPackagesDirectory();
             DirectoryInfo[] packageDirs = new DirectoryInfo(extractedPackagesDir).GetDirectories();
+            int numPackages = packageDirs.Length;
+            float progress = 0.0f;
+            float singlePackagePerc = 100.0f / numPackages;
 
             // Create destination folder for SimObjects.
-
-
             foreach (DirectoryInfo package in packageDirs) {
                 Console.WriteLine("Processing package: " + package.Name);
 
+                // Copy Models to <OUTPUT_ROOT>/SimObjects/<model_name>
                 DirectoryInfo[] modelDirs = new DirectoryInfo(Path.Combine(package.FullName, "aircraft")).GetDirectories();
 
                 foreach (DirectoryInfo model in modelDirs) {
                     string destDir = Path.Combine(this.getOutputRootDirectory(), "SimObjects", "Airplanes", model.Name);
-                    Console.WriteLine("Copy model " + model + " to " + destDir);
+                    Console.WriteLine("Copying model: " + model.FullName + " --> " + destDir);
+                    copyDirectory(model.FullName, destDir);
                 }
+
+                // Copy Scenery to <OUTPUT_ROOT>/WOAI Traffic/scenery
+                // Create <OUTPUT_ROOT>/WOAI Traffic/scenery directory
+                CreateDirectory(new DirectoryInfo(this.getSceneryOutputDirectory()));
+                FileInfo[] sceneryFiles = new DirectoryInfo(Path.Combine(package.FullName, "scenery", "world", "scenery")).GetFiles();
+                foreach (FileInfo sceneryFile in sceneryFiles) {
+                    string dest = Path.Combine(this.getOutputRootDirectory(), "WOAI Traffic", "scenery", sceneryFile.Name);
+                    Console.WriteLine("Copying scenery file: " + sceneryFile.FullName + " --> " + dest);
+                    File.Copy(sceneryFile.FullName, dest, true);
+                }
+
+                // Copy textures from <model_name>/Texture to <OUTPUT_ROOT>/SimObjects/Airplanes/WOAI_Fallback
+
+                
+                progress = progress + singlePackagePerc;
+                Console.WriteLine("Updating progress to " + progress);
+                this.updateProgress((int)progress);
+            }
+        }
+
+        public static void CreateDirectory(DirectoryInfo directory) {
+            if (!directory.Parent.Exists) {
+                CreateDirectory(directory.Parent);
+            }
+            directory.Create();
+        }
+
+        private static void copyDirectory(string sourcePath, string destPath) {
+            if (!Directory.Exists(destPath)) {
+                Directory.CreateDirectory(destPath);
+            }
+
+            foreach (string file in Directory.GetFiles(sourcePath)) {
+                string dest = Path.Combine(destPath, Path.GetFileName(file));
+                File.Copy(file, dest, true);
+            }
+
+            foreach (string folder in Directory.GetDirectories(sourcePath)) {
+                string dest = Path.Combine(destPath, Path.GetFileName(folder));
+                copyDirectory(folder, dest);
             }
         }
 
@@ -133,6 +201,7 @@ namespace WOAI_P3D_Installer
 
             this.lockUi();
             this.updateProgress(1);
+            this.updateProgress(this.calculateTaskProgress("CHECK_DIRS", 100.0f));
 
             folderCheckOk =  this.checkFolderStructure();
 
@@ -141,10 +210,9 @@ namespace WOAI_P3D_Installer
                 return;
             }
 
-            this.copyGlobalTextures();
+            this.updateProgress(this.calculateTaskProgress("DIRECTORY_CHECK", 100.0f));
 
-            this.updateProgress(5);
-            this.updateProgress(50);
+            this.copyGlobalTextures();
         }
 
         private void lockUi()
