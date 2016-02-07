@@ -113,7 +113,7 @@ namespace WOAI_P3D_Installer
 
         private void copyGlobalTextures() {
             string extractedPackagesDir = this.getExtractedPackagesDirectory();
-            DirectoryInfo[] packageDirs = new DirectoryInfo(extractedPackagesDir).GetDirectories();
+              DirectoryInfo[] packageDirs = new DirectoryInfo(extractedPackagesDir).GetDirectories();
             int numPackages = packageDirs.Length;
             float progress = 0.0f;
             float singlePackagePerc = 100.0f / numPackages;
@@ -122,11 +122,19 @@ namespace WOAI_P3D_Installer
             foreach (DirectoryInfo package in packageDirs) {
                 Console.WriteLine("Processing package: " + package.Name);
 
+                string srcBglPath = Path.Combine(package.FullName, "scenery", "world", "scenery");
+                string srcModelPath = Path.Combine(package.FullName, "aircraft");
+                string srcTexturePath = Path.Combine(package.FullName, "Texture");
+                string destBglPath = Path.Combine(this.getOutputRootDirectory(), "WOAI Traffic", "scenery");
+                string destModelPath = Path.Combine(this.getOutputRootDirectory(), "SimObjects", "Airplanes");
+                string destTexturePath = Path.Combine(this.getOutputRootDirectory(), "SimObjects", "Airplanes", "WOAI_Base", "Texture_Fallback");
+                bool textureFallbackDirExists = Directory.Exists(destTexturePath);
+
                 // Copy Models to <OUTPUT_ROOT>/SimObjects/<model_name>
-                DirectoryInfo[] modelDirs = new DirectoryInfo(Path.Combine(package.FullName, "aircraft")).GetDirectories();
+                DirectoryInfo[] modelDirs = new DirectoryInfo(srcModelPath).GetDirectories();
 
                 foreach (DirectoryInfo model in modelDirs) {
-                    string destDir = Path.Combine(this.getOutputRootDirectory(), "SimObjects", "Airplanes", model.Name);
+                    string destDir = Path.Combine(destModelPath, model.Name);
                     Console.WriteLine("Copying model: " + model.FullName + " --> " + destDir);
                     copyDirectory(model.FullName, destDir);
                 }
@@ -134,16 +142,30 @@ namespace WOAI_P3D_Installer
                 // Copy Scenery to <OUTPUT_ROOT>/WOAI Traffic/scenery
                 // Create <OUTPUT_ROOT>/WOAI Traffic/scenery directory
                 CreateDirectory(new DirectoryInfo(this.getSceneryOutputDirectory()));
-                FileInfo[] sceneryFiles = new DirectoryInfo(Path.Combine(package.FullName, "scenery", "world", "scenery")).GetFiles();
+                FileInfo[] sceneryFiles = new DirectoryInfo(srcBglPath).GetFiles();
+
                 foreach (FileInfo sceneryFile in sceneryFiles) {
-                    string dest = Path.Combine(this.getOutputRootDirectory(), "WOAI Traffic", "scenery", sceneryFile.Name);
+                    string dest = Path.Combine(destBglPath, sceneryFile.Name);
                     Console.WriteLine("Copying scenery file: " + sceneryFile.FullName + " --> " + dest);
                     File.Copy(sceneryFile.FullName, dest, true);
                 }
 
                 // Copy textures from <model_name>/Texture to <OUTPUT_ROOT>/SimObjects/Airplanes/WOAI_Fallback
+                if (Directory.Exists(srcTexturePath)) {
+                    FileInfo[] textureFiles = new DirectoryInfo(srcTexturePath).GetFiles();
 
-                
+                    if (!textureFallbackDirExists) {
+                        CreateDirectory(new DirectoryInfo(destTexturePath));
+                    }
+
+                    foreach (FileInfo textureFile in textureFiles) {
+                        string dest = Path.Combine(destTexturePath, textureFile.Name);
+                        Console.WriteLine("Copying texture file: " + textureFile.FullName + " --> " + dest);
+                        File.Copy(textureFile.FullName, dest, true);
+                    }
+                }
+
+                // Update progress.
                 progress = progress + singlePackagePerc;
                 Console.WriteLine("Updating progress to " + progress);
                 this.updateProgress((int)progress);
