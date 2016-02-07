@@ -14,6 +14,6 @@ Destination structure:
     - SimObjects\Airplanes
       - WOAI_Base
         - Texture_Fallback
-      - <WOAI Aircraft Folders>
+      - WOAI Aircraft Folders
     - Scenery
-      - <WOAI Traffic bgls>
+      - WOAI Traffic bgls
