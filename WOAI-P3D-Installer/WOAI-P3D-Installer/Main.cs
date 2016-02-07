@@ -15,6 +15,12 @@ namespace WOAI_P3D_Installer
     {
         public Main() {
             InitializeComponent();
+
+            // Display the version number in the status bar.
+            this.tsslVersion.Text = System.Reflection.Assembly.GetExecutingAssembly()
+                .GetName()
+                .Version
+                .ToString();
         }
 
         private void btnChooseFolder_Click(object sender, EventArgs e) {
@@ -251,10 +257,19 @@ namespace WOAI_P3D_Installer
         }
 
         private void aboutToolStripMenuItem1_Click(object sender, EventArgs e) {
-            MessageBox.Show("WOAI Installer for P3D - v1.0\nCreated by " + 
+            string version = System.Reflection.Assembly.GetExecutingAssembly()
+                .GetName()
+                .Version
+                .ToString();
+
+            MessageBox.Show("WOAI Installer for P3D - v" + version + "\nCreated by " + 
                 "Wills Bithrey\nPlease file issues on GitHub at " + 
                 "https://github.com/WillsB3/WOAI-P3D-Installer", "About", 
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void statusStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e) {
+
         }
     }
 }

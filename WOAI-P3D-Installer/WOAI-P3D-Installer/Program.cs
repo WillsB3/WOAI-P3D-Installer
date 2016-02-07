@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Squirrel;
 
 namespace WOAI_P3D_Installer
 {
@@ -17,6 +18,14 @@ namespace WOAI_P3D_Installer
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new Main());
+
+            Task.Run(async () =>
+            {
+                using (var mgr = UpdateManager.GitHubUpdateManager("https://github.com/WillsB3/WOAI-P3D-Installer")) {
+                    await mgr.Result.UpdateApp();
+                }
+            });
         }
+
     }
 }
