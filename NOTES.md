@@ -9,12 +9,11 @@ App:
   - Copy all bgls from "Airline\Scenery\World\Scenery\*.bgl" to
     "<ROOT>\Output\WOAI\Scenery\".
 
-Structure:
-  - Prepar3d V3
+Destination structure:
+  - WOAI
     - SimObjects\Airplanes
-      - WOAI Base
+      - WOAI_Base
         - Texture_Fallback
       - <WOAI Aircraft Folders>
-  - WOAI
     - Scenery
       - <WOAI Traffic bgls>
