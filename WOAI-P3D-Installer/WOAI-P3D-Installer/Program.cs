@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Squirrel;
+using NLog;
 
 namespace WOAI_P3D_Installer
 {
@@ -41,7 +42,9 @@ namespace WOAI_P3D_Installer
                     Console.WriteLine("Update check failed" + ex);
                 }
             });
-            // NLog.GlobalDiagnosticContext["StartTime"] = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+
+            NLog.GlobalDiagnosticsContext.Set("logName", DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss"));
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new Main());
