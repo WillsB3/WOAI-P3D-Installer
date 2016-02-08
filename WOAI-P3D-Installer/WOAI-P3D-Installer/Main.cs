@@ -271,7 +271,7 @@ namespace WOAI_P3D_Installer
 
         private string getVersion() {
             Assembly assembly = Assembly.GetExecutingAssembly();
-            return assembly.GetName().Version.ToString(3);
+            return assembly.GetName().Version.ToString(4);
         }
     }
 }
