@@ -10,6 +10,8 @@ namespace WOAI_P3D_Installer
 {
     static class Program
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -21,25 +23,27 @@ namespace WOAI_P3D_Installer
                     using (var mgr = UpdateManager.GitHubUpdateManager("https://github.com/WillsB3/WOAI-P3D-Installer")) {
                         // Note, in most of these scenarios, the app exits after this method completes!
                         SquirrelAwareApp.HandleEvents(
-                            v => {
+                            onInitialInstall: v => {
                                 mgr.Result.CreateShortcutForThisExe();
-                                MessageBox.Show("OnInitialInstall: " + v);
+                                logger.Info("OnInitialInstall: " + v);
                             },
-                            v => {
+                            onAppUpdate: v => {
                                 mgr.Result.CreateShortcutForThisExe();
-                                MessageBox.Show("OnAppUpdate: " + v);
+                                logger.Info("OnAppUpdate: " + v);
                             },
-                            v => MessageBox.Show("OnAppObsoleted: " + v),
-                            v => {
+                            onAppUninstall: v => {
                                 mgr.Result.RemoveShortcutForThisExe();
-                                MessageBox.Show("OnAppUninstall: " + v);
+                                logger.Info("OnAppUninstall: " + v);
                             },
-                            () => MessageBox.Show("OnFirstRun"));
+                            onFirstRun: () => {
+                                logger.Info("OnFirstRun");
+                            }
+                        );
 
                         await mgr.Result.UpdateApp();
                     }
                 } catch (Exception ex) {
-                    Console.WriteLine("Update check failed" + ex);
+                    logger.Warn("Update check failed: " + ex);
                 }
             });
 

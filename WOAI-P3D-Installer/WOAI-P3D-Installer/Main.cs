@@ -17,7 +17,7 @@ namespace WOAI_P3D_Installer
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-    public Main() {
+        public Main() {
             InitializeComponent();
             logger.Info("Main form loaded.");
 
