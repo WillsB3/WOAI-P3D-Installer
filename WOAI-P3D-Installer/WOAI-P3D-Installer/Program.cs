@@ -35,18 +35,13 @@ namespace WOAI_P3D_Installer
                             },
                             () => MessageBox.Show("OnFirstRun"));
 
-                    // onInitialInstall: v => mgr.Result.CreateShortcutForThisExe(),
-                    //      onAppUpdate: v => mgr.Result.CreateShortcutForThisExe(),
-                    //      onAppUninstall: v => mgr.Result.RemoveShortcutForThisExe(),
-                    //      onFirstRun: () => ShowTheWelcomeWizard = true);
-
                         await mgr.Result.UpdateApp();
                     }
                 } catch (Exception ex) {
                     Console.WriteLine("Update check failed" + ex);
                 }
             });
-
+            // NLog.GlobalDiagnosticContext["StartTime"] = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new Main());

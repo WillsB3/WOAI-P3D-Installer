@@ -9,13 +9,17 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
 using System.Reflection;
+using NLog;
 
 namespace WOAI_P3D_Installer
 {
     public partial class Main : Form 
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         public Main() {
             InitializeComponent();
+            logger.Info("Main form loaded.");
 
             // Display the version number in the status bar.
             this.tsslVersion.Text = this.getVersion();
@@ -28,6 +32,7 @@ namespace WOAI_P3D_Installer
         }
 
         private bool checkFolderStructure() {
+            logger.Trace("Starting folder structure check.");
             string sourceRootDirectory = this.getSourceRootDirectory();
             string extractedPackagesDirectory = this.getExtractedPackagesDirectory();
             string outputRootDirectory = this.getOutputRootDirectory();
@@ -115,11 +120,13 @@ namespace WOAI_P3D_Installer
         }
 
         private void copyGlobalTextures() {
+            logger.Trace("Starting main processing.");
             string extractedPackagesDir = this.getExtractedPackagesDirectory();
               DirectoryInfo[] packageDirs = new DirectoryInfo(extractedPackagesDir).GetDirectories();
             int numPackages = packageDirs.Length;
             float progress = 0.0f;
             float singlePackagePerc = 100.0f / numPackages;
+            logger.Trace("About to process {0} packages.", numPackages);
 
             // Create destination folder for SimObjects.
             foreach (DirectoryInfo package in packageDirs) {
@@ -173,6 +180,8 @@ namespace WOAI_P3D_Installer
                 Console.WriteLine("Updating progress to " + progress);
                 this.updateProgress((int)progress);
             }
+
+            logger.Trace("Processing complete.");
         }
 
         public static void CreateDirectory(DirectoryInfo directory) {
