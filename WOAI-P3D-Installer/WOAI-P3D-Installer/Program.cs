@@ -18,34 +18,7 @@ namespace WOAI_P3D_Installer
         [STAThread]
         static void Main()
         {
-            Task.Run(async () => {
-                try {
-                    using (var mgr = UpdateManager.GitHubUpdateManager("https://github.com/WillsB3/WOAI-P3D-Installer")) {
-                        // Note, in most of these scenarios, the app exits after this method completes!
-                        SquirrelAwareApp.HandleEvents(
-                            onInitialInstall: v => {
-                                mgr.Result.CreateShortcutForThisExe();
-                                logger.Info("OnInitialInstall: " + v);
-                            },
-                            onAppUpdate: v => {
-                                mgr.Result.CreateShortcutForThisExe();
-                                logger.Info("OnAppUpdate: " + v);
-                            },
-                            onAppUninstall: v => {
-                                mgr.Result.RemoveShortcutForThisExe();
-                                logger.Info("OnAppUninstall: " + v);
-                            },
-                            onFirstRun: () => {
-                                logger.Info("OnFirstRun");
-                            }
-                        );
-
-                        await mgr.Result.UpdateApp();
-                    }
-                } catch (Exception ex) {
-                    logger.Warn("Update check failed: " + ex);
-                }
-            });
+            
 
             NLog.GlobalDiagnosticsContext.Set("logName", DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss"));
 

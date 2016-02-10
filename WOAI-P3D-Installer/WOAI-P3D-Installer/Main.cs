@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Reflection;
 using NLog;
+using Squirrel;
 
 namespace WOAI_P3D_Installer
 {
@@ -23,6 +24,58 @@ namespace WOAI_P3D_Installer
 
             // Display the version number in the status bar.
             this.tsslVersion.Text = this.getVersion();
+
+            Task update = new Task(checkForUpdate);
+            update.Start();
+            update.Wait();
+        }
+
+        private async void checkForUpdate() {
+            logger.Debug("Starting update check...");
+
+            Task<UpdateInfo> task = this.doUpdateAsync();
+            await task;
+
+            
+
+            if (task.Result.ReleasesToApply.Count != 0) {
+                logger.Info("Update available");
+                MessageBox.Show("There is an update available. Do you want to install it now?",
+                                "Update", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            } else {
+                logger.Info("No updates available");
+            }
+        }
+
+        private async Task<UpdateInfo> doUpdateAsync() {
+            using (var mgr = UpdateManager.GitHubUpdateManager("https://github.com/WillsB3/WOAI-P3D-Installer")) {
+                // Note, in most of these scenarios, the app exits after this method completes!
+                SquirrelAwareApp.HandleEvents(
+                    onInitialInstall: v => {
+                        mgr.Result.CreateShortcutForThisExe();
+                        logger.Debug("Squirrel:OnInitialInstall: " + v);
+                    },
+                    onAppUpdate: v => {
+                        mgr.Result.CreateShortcutForThisExe();
+                        logger.Debug("Squirrel:OnAppUpdate: " + v);
+                    },
+                    onAppUninstall: v => {
+                        mgr.Result.RemoveShortcutForThisExe();
+                        logger.Debug("Squirrel:OnAppUninstall: " + v);
+                    },
+                    onFirstRun: () => {
+                        logger.Debug("Squirrel:OnFirstRun");
+                    }
+                );
+
+                try {
+                    UpdateInfo u = await mgr.Result.CheckForUpdate(false);
+                    return u;
+                } catch (Exception ex) {
+                    logger.Error(ex, "Error while trying to check for updates.");
+                    return null;
+                }
+            }
         }
 
         private void btnChooseFolder_Click(object sender, EventArgs e) {
