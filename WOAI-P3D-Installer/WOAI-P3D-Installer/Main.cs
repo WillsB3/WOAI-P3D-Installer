@@ -17,6 +17,7 @@ namespace WOAI_P3D_Installer
     public partial class Main : Form 
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
+        private Task<UpdateManager> updateManager = UpdateManager.GitHubUpdateManager("https://github.com/WillsB3/WOAI-P3D-Installer");
 
         public Main() {
             InitializeComponent();
@@ -33,48 +34,73 @@ namespace WOAI_P3D_Installer
         private async void checkForUpdate() {
             logger.Debug("Starting update check...");
 
-            Task<UpdateInfo> task = this.doUpdateAsync();
-            await task;
-
-            
-
-            if (task.Result.ReleasesToApply.Count != 0) {
+            Task<UpdateInfo> updates = this.checkUpdate();
+            await updates;
+                     
+            if (updates.Result.ReleasesToApply.Count != 0) {
                 logger.Info("Update available");
-                MessageBox.Show("There is an update available. Do you want to install it now?",
-                                "Update", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                DialogResult dialogResult = MessageBox.Show("There is an update available. Do you want to " + 
+                    "install it now?", "Update Available", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                if (dialogResult == DialogResult.Yes) {
+                    logger.Info("User accepted update.");
+                    Task update = this.doUpdate(updates.Result);
+                    await update;
+                } else {
+                    logger.Info("User deferred installing update.");
+                }
             } else {
                 logger.Info("No updates available");
             }
         }
 
-        private async Task<UpdateInfo> doUpdateAsync() {
-            using (var mgr = UpdateManager.GitHubUpdateManager("https://github.com/WillsB3/WOAI-P3D-Installer")) {
-                // Note, in most of these scenarios, the app exits after this method completes!
-                SquirrelAwareApp.HandleEvents(
-                    onInitialInstall: v => {
-                        mgr.Result.CreateShortcutForThisExe();
-                        logger.Debug("Squirrel:OnInitialInstall: " + v);
-                    },
-                    onAppUpdate: v => {
-                        mgr.Result.CreateShortcutForThisExe();
-                        logger.Debug("Squirrel:OnAppUpdate: " + v);
-                    },
-                    onAppUninstall: v => {
-                        mgr.Result.RemoveShortcutForThisExe();
-                        logger.Debug("Squirrel:OnAppUninstall: " + v);
-                    },
-                    onFirstRun: () => {
-                        logger.Debug("Squirrel:OnFirstRun");
-                    }
-                );
+        private async Task doUpdate(UpdateInfo u, Action<int> progress = null) {
+            try {
+                await this.updateManager.Result.DownloadReleases(u.ReleasesToApply, x => progress(x / 3 + 33));
+            } catch (Exception ex) {
+                logger.Error(ex, "Error trying to download releases.");
+            } 
 
-                try {
-                    UpdateInfo u = await mgr.Result.CheckForUpdate(false);
-                    return u;
-                } catch (Exception ex) {
-                    logger.Error(ex, "Error while trying to check for updates.");
-                    return null;
+            try {
+                await this.updateManager.Result.ApplyReleases(u, x => progress(x / 3 + 66));
+            } catch (Exception ex) {
+                logger.Error(ex, "Error while trying to apply releases.");
+            }
+
+            try {
+                await this.updateManager.Result.CreateUninstallerRegistryEntry();
+            } catch (Exception ex) {
+                logger.Error(ex, "Error while trying to create uninstaller registry entry.");
+            }
+        }
+
+        private async Task<UpdateInfo> checkUpdate() {
+            // Note, in most of these scenarios, the app exits after this method completes!
+            SquirrelAwareApp.HandleEvents(
+                onInitialInstall: v => {
+                    updateManager.Result.CreateShortcutForThisExe();
+                    logger.Debug("Squirrel:OnInitialInstall: " + v);
+                },
+                onAppUpdate: v => {
+                    updateManager.Result.CreateShortcutForThisExe();
+                    logger.Debug("Squirrel:OnAppUpdate: " + v);
+                },
+                onAppUninstall: v => {
+                    updateManager.Result.RemoveShortcutForThisExe();
+                    logger.Debug("Squirrel:OnAppUninstall: " + v);
+                },
+                onFirstRun: () => {
+                    logger.Debug("Squirrel:OnFirstRun");
                 }
+            );
+
+            try {
+                UpdateInfo u = await updateManager.Result.CheckForUpdate(false);
+                return u;
+            } catch (Exception ex) {
+                logger.Error(ex, "Error while trying to check for updates.");
+                return null;
             }
         }
 
@@ -325,6 +351,10 @@ namespace WOAI_P3D_Installer
         private string getVersion() {
             Assembly assembly = Assembly.GetExecutingAssembly();
             return assembly.GetName().Version.ToString(4);
+        }
+
+        private void Main_FormClosing(object sender, FormClosingEventArgs e) {
+            this.updateManager.Dispose();
         }
     }
 }

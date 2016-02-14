@@ -113,13 +113,13 @@
             // toolStripStatusLabel3
             // 
             this.toolStripStatusLabel3.Name = "toolStripStatusLabel3";
-            this.toolStripStatusLabel3.Size = new System.Drawing.Size(123, 17);
+            this.toolStripStatusLabel3.Size = new System.Drawing.Size(138, 17);
             this.toolStripStatusLabel3.Spring = true;
             // 
             // toolStripStatusLabel2
             // 
             this.toolStripStatusLabel2.Name = "toolStripStatusLabel2";
-            this.toolStripStatusLabel2.Size = new System.Drawing.Size(123, 17);
+            this.toolStripStatusLabel2.Size = new System.Drawing.Size(138, 17);
             this.toolStripStatusLabel2.Spring = true;
             // 
             // tsslVersion
@@ -196,6 +196,7 @@
             this.MaximizeBox = false;
             this.Name = "Main";
             this.Text = "WOAI P3D Installer";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Main_FormClosing);
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
             this.menuStrip1.ResumeLayout(false);
