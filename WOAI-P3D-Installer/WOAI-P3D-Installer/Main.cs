@@ -111,7 +111,7 @@ namespace WOAI_P3D_Installer
         }
 
         private bool checkFolderStructure() {
-            logger.Trace("Starting folder structure check.");
+            logger.Info("Starting folder structure check.");
             string sourceRootDirectory = this.getSourceRootDirectory();
             string extractedPackagesDirectory = this.getExtractedPackagesDirectory();
             string outputRootDirectory = this.getOutputRootDirectory();
@@ -199,17 +199,16 @@ namespace WOAI_P3D_Installer
         }
 
         private void copyGlobalTextures() {
-            logger.Trace("Starting main processing.");
             string extractedPackagesDir = this.getExtractedPackagesDirectory();
-              DirectoryInfo[] packageDirs = new DirectoryInfo(extractedPackagesDir).GetDirectories();
+            DirectoryInfo[] packageDirs = new DirectoryInfo(extractedPackagesDir).GetDirectories();
             int numPackages = packageDirs.Length;
             float progress = 0.0f;
             float singlePackagePerc = 100.0f / numPackages;
-            logger.Trace("About to process {0} packages.", numPackages);
+            logger.Info("About to process {0} packages.", numPackages);
 
             // Create destination folder for SimObjects.
             foreach (DirectoryInfo package in packageDirs) {
-                Console.WriteLine("Processing package: " + package.Name);
+                logger.Info("Processing package: {0}", package.Name);
 
                 string srcBglPath = Path.Combine(package.FullName, "scenery", "world", "scenery");
                 string srcModelPath = Path.Combine(package.FullName, "aircraft");
@@ -217,15 +216,49 @@ namespace WOAI_P3D_Installer
                 string destBglPath = Path.Combine(this.getOutputRootDirectory(), "WOAI Traffic", "scenery");
                 string destModelPath = Path.Combine(this.getOutputRootDirectory(), "SimObjects", "Airplanes");
                 string destTexturePath = Path.Combine(this.getOutputRootDirectory(), "SimObjects", "Airplanes", "WOAI_Base", "Texture_Fallback");
+                bool needsTextureFallback = false;
                 bool textureFallbackDirExists = Directory.Exists(destTexturePath);
 
                 // Copy Models to <OUTPUT_ROOT>/SimObjects/<model_name>
                 DirectoryInfo[] modelDirs = new DirectoryInfo(srcModelPath).GetDirectories();
 
+                // Copy global textures from <model_name>/Texture to <OUTPUT_ROOT>/SimObjects/Airplanes/WOAI_Fallback
+                if (Directory.Exists(srcTexturePath)) {
+                    FileInfo[] textureFiles = new DirectoryInfo(srcTexturePath).GetFiles();
+                    needsTextureFallback = true;
+
+                    if (!textureFallbackDirExists) {
+                        CreateDirectory(new DirectoryInfo(destTexturePath));
+                    }
+
+                    foreach (FileInfo textureFile in textureFiles) {
+                        string dest = Path.Combine(destTexturePath, textureFile.Name);
+                        logger.Info("Copying texture file: {0} --> {1}", textureFile.FullName, dest);
+                        File.Copy(textureFile.FullName, dest, true);
+                    }
+                }
+
                 foreach (DirectoryInfo model in modelDirs) {
-                    string destDir = Path.Combine(destModelPath, model.Name);
-                    Console.WriteLine("Copying model: " + model.FullName + " --> " + destDir);
-                    copyDirectory(model.FullName, destDir);
+                    string modelDestDir = Path.Combine(destModelPath, model.Name);
+                    logger.Info("Copying model: {0} --> {1}", model.FullName, modelDestDir);
+                    copyDirectory(model.FullName, modelDestDir);
+
+                    if (needsTextureFallback) {
+                        // For each texture  folder in <OUTPUT_ROOT>/SimObjects/Airplanes/<model_name>/
+                        DirectoryInfo[] allDirs = new DirectoryInfo(modelDestDir).GetDirectories();
+                        DirectoryInfo[] textureDirs = Array.FindAll(allDirs, dir => dir.Name.ToLower().StartsWith("texture."));
+
+                        foreach (DirectoryInfo texture in textureDirs) {
+                            string textureCfgPath = Path.Combine(texture.FullName, "texture.cfg");
+                            string[] lines = {
+                                "[fltsim]",
+                                @"fallback.1=..\..\WOAI_Base\Texture_Fallback"
+                            };
+
+                            logger.Info("Writing texture.cfg to {0}", textureCfgPath);
+                            System.IO.File.WriteAllLines(textureCfgPath, lines);
+                        }
+                    }
                 }
 
                 // Copy Scenery to <OUTPUT_ROOT>/WOAI Traffic/scenery
@@ -235,32 +268,16 @@ namespace WOAI_P3D_Installer
 
                 foreach (FileInfo sceneryFile in sceneryFiles) {
                     string dest = Path.Combine(destBglPath, sceneryFile.Name);
-                    Console.WriteLine("Copying scenery file: " + sceneryFile.FullName + " --> " + dest);
+                    logger.Info("Copying scenery file: {0} --> {1}", sceneryFile.FullName, dest);
                     File.Copy(sceneryFile.FullName, dest, true);
-                }
-
-                // Copy textures from <model_name>/Texture to <OUTPUT_ROOT>/SimObjects/Airplanes/WOAI_Fallback
-                if (Directory.Exists(srcTexturePath)) {
-                    FileInfo[] textureFiles = new DirectoryInfo(srcTexturePath).GetFiles();
-
-                    if (!textureFallbackDirExists) {
-                        CreateDirectory(new DirectoryInfo(destTexturePath));
-                    }
-
-                    foreach (FileInfo textureFile in textureFiles) {
-                        string dest = Path.Combine(destTexturePath, textureFile.Name);
-                        Console.WriteLine("Copying texture file: " + textureFile.FullName + " --> " + dest);
-                        File.Copy(textureFile.FullName, dest, true);
-                    }
                 }
 
                 // Update progress.
                 progress = progress + singlePackagePerc;
-                Console.WriteLine("Updating progress to " + progress);
                 this.updateProgress((int)progress);
             }
 
-            logger.Trace("Processing complete.");
+            logger.Info("Processing complete.");
         }
 
         public static void CreateDirectory(DirectoryInfo directory) {
@@ -297,6 +314,8 @@ namespace WOAI_P3D_Installer
         private void btnGo_Click(object sender, EventArgs e) {
             bool folderCheckOk;
 
+            logger.Info("Processing started...");
+
             this.updateProgress(0);
             this.lockUi();
             this.updateProgress(1);
@@ -329,6 +348,7 @@ namespace WOAI_P3D_Installer
         }
 
         private void updateProgress(int value) {
+            logger.Debug("Updating progress to {0}", value);
             this.pbProgress.Value = value;
         }
 
