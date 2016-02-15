@@ -17,7 +17,6 @@ namespace WOAI_P3D_Installer
     public partial class Main : Form 
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
-        private Task<UpdateManager> updateManager = UpdateManager.GitHubUpdateManager("https://github.com/WillsB3/WOAI-P3D-Installer");
 
         public Main() {
             InitializeComponent();
@@ -26,81 +25,75 @@ namespace WOAI_P3D_Installer
             // Display the version number in the status bar.
             this.tsslVersion.Text = this.getVersion();
 
-            Task update = new Task(checkForUpdate);
-            update.Start();
-            update.Wait();
+            Task updateTask = new Task(update);
+            updateTask.Start();
+            updateTask.Wait();
         }
 
-        private async void checkForUpdate() {
-            logger.Debug("Starting update check...");
+        private async void update() {
+            logger.Info("Starting update check…");
 
-            Task<UpdateInfo> updates = this.checkUpdate();
-            await updates;
-                     
-            if (updates.Result.ReleasesToApply.Count != 0) {
-                logger.Info("Update available");
+            this.tsslStatus.Text = "Checking for Updates…";
 
-                DialogResult dialogResult = MessageBox.Show("There is an update available. Do you want to " + 
-                    "install it now?", "Update Available", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            using (var mgr = UpdateManager.GitHubUpdateManager("https://github.com/WillsB3/WOAI-P3D-Installer")) {
+                var updates = mgr.Result.CheckForUpdate();
+                await updates;
 
-                if (dialogResult == DialogResult.Yes) {
-                    logger.Info("User accepted update.");
-                    Task update = this.doUpdate(updates.Result);
-                    await update;
+                if (updates.Result.ReleasesToApply.Any()) {
+                    var latestVersion = updates.Result.ReleasesToApply.OrderBy(x => x.Version).Last();
+                    logger.Info("Update available. Current Version {0}, New Version {1}", mgr.Result.CurrentlyInstalledVersion(), latestVersion.Version.ToString());
+
+                    DialogResult dialogResult = MessageBox.Show("There is an update available. Do you want to " +
+                        "install it now?", "Update Available", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                    if (dialogResult == DialogResult.Yes) {
+                        logger.Info("User accepted update.");
+                        this.lockUi();
+
+                        try {
+                            this.tsslStatus.Text = "Downloading updates…";
+                            await mgr.Result.DownloadReleases(updates.Result.ReleasesToApply);
+                        } catch (Exception ex) {
+                            logger.Error(ex, "Error trying to download releases.");
+                            MessageBox.Show("There was an error trying to download updates.", "Error",
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            this.resetUi();
+                        }
+
+                        try {
+                            this.tsslStatus.Text = "Applying updates…";
+                            await mgr.Result.ApplyReleases(updates.Result);
+                        } catch (Exception ex) {
+                            logger.Error(ex, "Error while trying to apply updates.");
+                            MessageBox.Show("There was an error trying to apply updates.", "Error",
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            this.resetUi();
+                        }
+
+                        try {
+                            await mgr.Result.CreateUninstallerRegistryEntry();
+                        } catch (Exception ex) {
+                            logger.Error(ex, "Error while trying to create uninstaller registry entry.");
+                            MessageBox.Show("There was an error trying to create the relevant registry entries for the update. " +
+                                "Please try reinstalling the latest full version of the application.", "Error",
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            this.resetUi();
+                        }
+
+                        string latestExe = Path.Combine(mgr.Result.RootAppDirectory, string.Concat("app-", latestVersion.Version.Version.Major, ".", latestVersion.Version.Version.Minor, ".", latestVersion.Version.Version.Build, ".", latestVersion.Version.Version.Revision), "WOAI_P3D_Installer.exe");
+                        logger.Info("Updates Applied successfully.");
+
+                        MessageBox.Show("Nearly there. The application will now restart to complete the update.", "Update Downloaded", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        logger.Info("Restarting App to complete update.");
+                        UpdateManager.RestartApp(latestExe);
+                    } else {
+                        logger.Info("User deferred installing update.");
+                        this.resetUi();
+                    }
                 } else {
-                    logger.Info("User deferred installing update.");
+                    logger.Info("No updates available.");
+                    this.resetUi();
                 }
-            } else {
-                logger.Info("No updates available");
-            }
-        }
-
-        private async Task doUpdate(UpdateInfo u, Action<int> progress = null) {
-            try {
-                await this.updateManager.Result.DownloadReleases(u.ReleasesToApply, x => progress(x / 3 + 33));
-            } catch (Exception ex) {
-                logger.Error(ex, "Error trying to download releases.");
-            } 
-
-            try {
-                await this.updateManager.Result.ApplyReleases(u, x => progress(x / 3 + 66));
-            } catch (Exception ex) {
-                logger.Error(ex, "Error while trying to apply releases.");
-            }
-
-            try {
-                await this.updateManager.Result.CreateUninstallerRegistryEntry();
-            } catch (Exception ex) {
-                logger.Error(ex, "Error while trying to create uninstaller registry entry.");
-            }
-        }
-
-        private async Task<UpdateInfo> checkUpdate() {
-            // Note, in most of these scenarios, the app exits after this method completes!
-            SquirrelAwareApp.HandleEvents(
-                onInitialInstall: v => {
-                    updateManager.Result.CreateShortcutForThisExe();
-                    logger.Debug("Squirrel:OnInitialInstall: " + v);
-                },
-                onAppUpdate: v => {
-                    updateManager.Result.CreateShortcutForThisExe();
-                    logger.Debug("Squirrel:OnAppUpdate: " + v);
-                },
-                onAppUninstall: v => {
-                    updateManager.Result.RemoveShortcutForThisExe();
-                    logger.Debug("Squirrel:OnAppUninstall: " + v);
-                },
-                onFirstRun: () => {
-                    logger.Debug("Squirrel:OnFirstRun");
-                }
-            );
-
-            try {
-                UpdateInfo u = await updateManager.Result.CheckForUpdate(false);
-                return u;
-            } catch (Exception ex) {
-                logger.Error(ex, "Error while trying to check for updates.");
-                return null;
             }
         }
 
@@ -303,18 +296,10 @@ namespace WOAI_P3D_Installer
             }
         }
 
-        private void resetUi(bool retainProgress) {
-            this.unlockUi();
-
-            if (!retainProgress) {
-                pbProgress.Value = 0;
-            }
-        }
-
         private void btnGo_Click(object sender, EventArgs e) {
             bool folderCheckOk;
 
-            logger.Info("Processing started...");
+            logger.Info("Processing started…");
 
             this.updateProgress(0);
             this.lockUi();
@@ -333,6 +318,20 @@ namespace WOAI_P3D_Installer
             this.copyGlobalTextures();
 
             this.done();
+        }
+
+        private void resetUi() {
+            this.resetUi(false);
+        }
+
+        private void resetUi(bool retainProgress) {
+            this.unlockUi();
+
+            if (!retainProgress) {
+                pbProgress.Value = 0;
+            }
+
+            this.tsslStatus.Text = "Ready";
         }
 
         private void lockUi() {
@@ -371,10 +370,6 @@ namespace WOAI_P3D_Installer
         private string getVersion() {
             Assembly assembly = Assembly.GetExecutingAssembly();
             return assembly.GetName().Version.ToString(4);
-        }
-
-        private void Main_FormClosing(object sender, FormClosingEventArgs e) {
-            this.updateManager.Dispose();
         }
     }
 }

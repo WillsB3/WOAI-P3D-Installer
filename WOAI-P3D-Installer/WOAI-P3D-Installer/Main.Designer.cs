@@ -198,7 +198,6 @@
             this.MaximizeBox = false;
             this.Name = "Main";
             this.Text = "WOAI P3D Installer";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Main_FormClosing);
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
             this.menuStrip1.ResumeLayout(false);
