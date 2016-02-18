@@ -18,13 +18,17 @@ namespace WOAI_P3D_Installer
         [STAThread]
         static void Main()
         {
-            
+            //SquirrelAwareApp.HandleEvents(
+            //    onAppUpdate: MainForm.OnAppUpdate,
+            //    onAppUninstall: MainForm.OnAppUninstall,
+            //    onInitialInstall: MainForm.OnInitialInstall
+            // );
 
             NLog.GlobalDiagnosticsContext.Set("logName", DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss"));
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Main());
+            Application.Run(new MainForm());
         }
 
     }

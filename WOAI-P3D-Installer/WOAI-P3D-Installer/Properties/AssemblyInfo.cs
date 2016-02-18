@@ -35,4 +35,4 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyVersion("0.5.3.2")]
 [assembly: AssemblyFileVersion("0.5.3.2")]
 
-[assembly: AssemblyMetadata("SquirrelAwareVersion", "1")]
+// [assembly: AssemblyMetadata("SquirrelAwareVersion", "1")]
